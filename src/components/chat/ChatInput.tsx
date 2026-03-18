@@ -3,9 +3,12 @@ import { Paperclip, Mic, Send, Smile, Trash2 } from 'lucide-react';
 
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
+  onInputFocus?: () => void;
+  onMicClick?: () => void;
+  disabled?: boolean;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onInputFocus, onMicClick, disabled }) => {
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -91,6 +94,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={onInputFocus}
+          disabled={disabled}
           rows={1}
         />
       </div>
@@ -100,7 +105,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
           <Send size={24} style={{ marginLeft: '4px' }} />
         </button>
       ) : (
-        <button className="btn-icon mic-btn" onClick={startRecording}>
+        <button className="btn-icon mic-btn" onClick={() => { onMicClick && onMicClick(); startRecording(); }} disabled={disabled}>
           <Mic size={24} />
         </button>
       )}

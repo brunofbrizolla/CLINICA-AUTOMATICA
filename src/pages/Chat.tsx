@@ -207,7 +207,7 @@ export const Chat: React.FC = () => {
     // Adiciona o cliente ao CRM se não existir
     const exists = leads.find((l: Lead) => l.name.toLowerCase() === name.toLowerCase());
     if (!exists) {
-      addLead({ name, phone: '912345678', status: 'active', lastMessage: '', treatments: ['Simulação'] });
+      addLead({ name, phone: '912345678', status: 'new', lastMessage: '', treatments: ['Simulação'] });
     }
     startConversation(name);
   };
