@@ -56,35 +56,42 @@ export const initialRagKnowledge: RagEntry[] = [
     triggerPhrase: "facetas",
     responseType: "image",
     responseText: "As Facetas Dentárias são 'lentes' ultrafinas personalizadas para corrigir pequenas imperfeições, manchas ou espaços em seus dentes. Oferecemos opções em Cerâmica (Premium/Porcelana, durabilidade e brilho inalteráveis) e em Resina Composta (Mais rápido e acessível). Quer agendar um design de sorriso?",
-    mediaUrl: "/example_image.png"
+    mediaUrl: "https://ngdsfdedewnnkktmahwc.supabase.co/storage/v1/object/public/imagem%20exemplo/example_image.png"
+  },
+  {
+    id: "8b",
+    triggerPhrase: "botox",
+    responseType: "image",
+    responseText: "Veja alguns resultados do Botox — a diferença é incrível!",
+    mediaUrl: "https://ngdsfdedewnnkktmahwc.supabase.co/storage/v1/object/public/imagem%20exemplo/example_image.png"
   },
   {
     id: "9",
     triggerPhrase: "implante",
     responseType: "image",
     responseText: "Realizamos reabilitação oral total com Implantologia moderna. Utilizamos a técnica All-on-4 ou All-on-6 para fixar uma dentadura completa sobre implantes de titânio (Muitas vezes em apenas um dia - Carga Imediata). Trabalhamos com Resina Acrílica, Zircónia (a mais resistente) e Porcelana.",
-    mediaUrl: "/example_image.png"
+    mediaUrl: "https://ngdsfdedewnnkktmahwc.supabase.co/storage/v1/object/public/imagem%20exemplo/example_image.png"
   },
   {
     id: "10",
     triggerPhrase: "harmonizacao",
     responseType: "image",
     responseText: "Nossos tratamentos de Harmonização Orofacial incluem:\n- Full Face (Rejuvenescimento global com preenchedores, bioestimuladores de colágeno e Lifting 3D Regenerativo)\n- Preenchimento Labial (com ácido hialurônico para volume e hidratação naturais)\n- Rejuvenescimento (Toxina botulínica e mais).",
-    mediaUrl: "/example_image.png"
+    mediaUrl: "https://ngdsfdedewnnkktmahwc.supabase.co/storage/v1/object/public/imagem%20exemplo/example_image.png"
   },
   {
     id: "11",
     triggerPhrase: "full face",
     responseType: "image",
     responseText: "O tratamento Full Face analisa o seu rosto como um todo para restaurar o volume natural (com preenchedores e bioestimuladores de colágeno) e melhorar os contornos proporcionando um Lifting 3D Regenerativo sem cirurgia e respeitando a sua harmonia.",
-    mediaUrl: "/example_image.png"
+    mediaUrl: "https://ngdsfdedewnnkktmahwc.supabase.co/storage/v1/object/public/imagem%20exemplo/example_image.png"
   },
   {
     id: "12",
     triggerPhrase: "preenchimento labial",
     responseType: "image",
     responseText: "Com o nosso preenchimento labial (à base de ácido hialurônico de alta qualidade), podemos realçar o volume, melhorar o contorno e devolver a hidratação profunda dos seus lábios, num procedimento rápido e seguro de apenas 30-40 minutos.",
-    mediaUrl: "/example_image.png"
+    mediaUrl: "https://ngdsfdedewnnkktmahwc.supabase.co/storage/v1/object/public/imagem%20exemplo/example_image.png"
   },
   {
     id: "13",

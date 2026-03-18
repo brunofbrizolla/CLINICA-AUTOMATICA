@@ -52,7 +52,7 @@ export const AgendaProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const addEvent = async (event: Omit<CalendarEvent, 'id'>) => {
-    const { data } = await supabase.from('agenda_events').insert([{
+    const { data, error } = await supabase.from('agenda_events').insert([{
       title: event.title,
       patient_name: event.patientName,
       specialist_name: event.specialistName,
@@ -64,6 +64,8 @@ export const AgendaProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       all_day: event.allDay || false,
       lead_id: event.leadId
     }]).select();
+
+    if (error) throw new Error(error.message);
 
     if (data && data.length > 0) {
       const d = data[0];
@@ -84,9 +86,11 @@ export const AgendaProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const deleteEvent = async (id: string) => {
-    await supabase.from('agenda_events').delete().eq('id', id);
+    const { error } = await supabase.from('agenda_events').delete().eq('id', id);
+    if (error) throw new Error(error.message);
     setEvents(prev => prev.filter(event => event.id !== id));
   };
+
 
   const updateEvent = async (id: string, updatedEvent: Partial<CalendarEvent>) => {
     const updatePayload: any = {};

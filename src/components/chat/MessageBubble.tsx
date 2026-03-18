@@ -20,7 +20,7 @@ interface MessageBubbleProps {
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.sender === 'user';
-  const timeString = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const timeString = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
