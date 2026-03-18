@@ -220,7 +220,7 @@ Use emojis com moderação, apenas quando fizer sentido no contexto.`;
     if (currentHistory.length === 0) {
       systemPrompt += `\nIMPORTANTE: Esta é a PRIMEIRA mensagem do paciente. Dê boas-vindas à KAVI Art Clinic, apresente-se como Roberta e pergunte o nome do paciente de forma educada e acolhedora.`;
     } else if (clientName) {
-      systemPrompt += `\nVocê já conhece o paciente, o nome dele é ${clientName}. Trate-o pelo nome.${isReturning ? ' Este paciente já tem histórico conosco — seja ainda mais acolhedora.' : ''}`;
+      systemPrompt += `\nVocê já conhece o paciente, o nome dele é ${clientName}. Trate-o pelo nome.${isReturning ? ' Este paciente já tem histórico conosco — seja ainda mais acolhedora.' : ''} SEJA PROATIVA: sempre pergunte como pode ajudar, se ele deseja agendar uma consulta ou tirar dúvidas sobre os procedimentos.`;
     } else {
       systemPrompt += `\n🚨 REGRA DE IDENTIFICAÇÃO: Você ainda não sabe o nome desta pessoa. Peça o nome dela de forma simpática. Assim que ela disser o nome, chame 'register_patient_name' e continue a conversa exatamente de onde pararam, incorporando o nome dela naturalmente. Não reinicie o atendimento e não ignore o que já foi falado anteriormente.`;
     }
@@ -423,7 +423,7 @@ REGRA DE REMARCAÇÃO: Se pedir para MUDAR o horário de uma consulta existente,
             setCurrentLeadId('created');
           }
           if (!responseText) {
-              responseText = `Muito prazer em te conhecer, ${realName}! 😊`;
+              responseText = `Muito prazer em te conhecer, ${realName}! 😊 Como posso te ajudar hoje? Quer tirar dúvidas sobre nossos tratamentos ou gostaria de agendar uma avaliação?`;
             }
           } // fim do else (nome válido)
         }
