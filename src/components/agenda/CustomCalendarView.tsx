@@ -19,7 +19,9 @@ const localizer = dateFnsLocalizer({
 });
 
 // ─── Toolbar customizada (inclui header de dias) ──────────────────────────────
-const CustomToolbar = (toolbar: any) => {
+const CustomToolbar = (props: any) => {
+  const toolbar = props;
+  const { onDayClick } = props;
   const goToBack = () => toolbar.onNavigate('PREV');
   const goToNext = () => toolbar.onNavigate('NEXT');
   const view: View = toolbar.view;
@@ -65,14 +67,17 @@ const CustomToolbar = (toolbar: any) => {
           {weekDays.map((day, i) => {
             const isToday = day.toDateString() === today.toDateString();
             return (
-              <div key={i} style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: '3px 1px',
-                borderLeft: i > 0 ? '1px solid #f0f0f0' : 'none',
-              }}>
+              <div key={i} 
+                onClick={() => onDayClick && onDayClick(day)}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '3px 1px',
+                  borderLeft: i > 0 ? '1px solid #f0f0f0' : 'none',
+                  cursor: 'pointer',
+                }}>
                 <span style={{ fontSize: '10px', fontWeight: 600, color: '#9ca3af', textTransform: 'lowercase' as const }}>
                   {format(day, 'eee', { locale: ptBR })}
                 </span>
@@ -149,7 +154,15 @@ export const CustomCalendarView: React.FC = () => {
   [events]);
 
   const components = useMemo(() => ({
-    toolbar: CustomToolbar,
+    toolbar: (props: any) => (
+      <CustomToolbar 
+        {...props} 
+        onDayClick={(d: Date) => {
+          setCurrentDate(d);
+          setCurrentView('day');
+        }} 
+      />
+    ),
     event: ({ event }: { event: CalendarEvent }) => (
       <div className="custom-event">
         <strong>{event.title}</strong>
