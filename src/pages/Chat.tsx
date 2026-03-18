@@ -7,6 +7,7 @@ import { useCrm, Lead } from '../store/CrmContext';
 import { useAgenda, CalendarEvent } from '../store/AgendaContext';
 import { User, UserCheck, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { openai } from '../lib/openai';
 
 // ── Modal de início de simulação ──────────────────────────────────────────────
 interface StartModalProps {
@@ -224,14 +225,70 @@ export const Chat: React.FC = () => {
     return { name: nameMatch ? nameMatch[1] : null };
   };
 
-  const checkAvailabilityForDay = (date: Date) => {
-    const slots = [9, 10, 11, 14, 15, 16, 17, 18];
-    return slots.filter(hour => {
-      const start = new Date(date); start.setHours(hour, 0, 0, 0);
-      const end = new Date(date);   end.setHours(hour + 1, 0, 0, 0);
-      return !events.some((ev: CalendarEvent) => start < new Date(ev.end) && end > new Date(ev.start));
-    }).map(h => `${h}:00`);
+  const triggerBotResponse = async (userText: string, currentHistory: Message[]) => {
+    setIsTyping(true);
+    const ragMatch = findResponse(userText);
+    
+    // Converte o histórico de mensagens
+    const chatHistory: any[] = currentHistory.map(m => ({
+      role: m.sender === 'bot' ? 'assistant' : 'user',
+      content: m.text
+    }));
+    chatHistory.push({ role: 'user', content: userText });
+
+    let systemPrompt = `Você é Roberta, uma assistente virtual amigável, acolhedora e educada (mas não excessiva) da KAVI Art Clinic.
+Seu objetivo é ajudar os pacientes, tirar dúvidas sobre tratamentos estéticos/odontológicos e captar agendamentos.
+Aja como uma humana real conversando no WhatsApp. Respostas curtas e diretas. Use emojis de vez em quando.`;
+
+    if (clientName) {
+      systemPrompt += `\nO paciente com que você está falando é um cliente chamado ${clientName}. Trate-o com familiaridade.`;
+    }
+
+    const today = new Date();
+    systemPrompt += `\nHoje é ${today.toLocaleDateString('pt-BR')}, ${today.toLocaleTimeString('pt-BR')}.`;
+
+    if (ragMatch) {
+      systemPrompt += `\n\n[INFORMAÇÃO IMPORTANTE DA CLÍNICA]\nCom base na dúvida do paciente, a resposta oficial da clínica sobre o assunto é: "${ragMatch.responseText}".\nUse essa informação para responder de forma super carismática.`;
+    }
+
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...chatHistory
+        ],
+        temperature: 0.7,
+        max_tokens: 300,
+      });
+
+      const responseText = completion.choices[0].message.content || 'Desculpe, ocorreu um erro de comunicação.';
+      
+      const botResponse: Message = { 
+        id: uuidv4(), 
+        text: responseText, 
+        sender: 'bot', 
+        timestamp: new Date(), 
+        type: ragMatch?.responseType || 'text', 
+        mediaUrl: ragMatch?.mediaUrl, 
+        audioDuration: ragMatch?.audioDuration, 
+        status: 'read' 
+      };
+      
+      setIsTyping(false);
+      setMessages(prev => [...prev, botResponse]);
+    } catch (err: any) {
+      console.error('Erro na API OpenAI:', err);
+      const errMsg = err?.message?.includes('401') 
+        ? '⚠️ Chave da OpenAI não configurada corretamente ou sem saldo.' 
+        : '⚠️ Erro ao contactar a IA. Tente novamente.';
+        
+      const botResponse: Message = { id: uuidv4(), text: errMsg, sender: 'bot', timestamp: new Date(), type: 'text', status: 'read' };
+      setIsTyping(false);
+      setMessages(prev => [...prev, botResponse]);
+    }
   };
+
 
   const handleSendMessage = (text: string) => {
     if (!simStarted) { setShowModal(true); return; }
@@ -250,54 +307,41 @@ export const Chat: React.FC = () => {
 
     const newUserMsg: Message = { id: uuidv4(), text, sender: 'user', timestamp: new Date(), type: 'text', status: 'sent' };
     setMessages(prev => [...prev, newUserMsg]);
-    setIsTyping(true);
-
-    setTimeout(() => {
-      let responseText = '';
-      let responseType: 'text' | 'image' | 'video' | 'audio' = 'text';
-      let mediaUrl, audioDuration;
-
-      const isQuestion = text.includes('?') || text.toLowerCase().match(/^(como|qual|quanto|onde|por que|quais|quero saber|queria saber|me fale|me explica|me conta)/i);
-      const ragMatch = findResponse(text);
-
-      if (ragMatch && (isQuestion || text.length > 5)) {
-        responseText = `${ragMatch.responseText} Aproveitando a sua dúvida, você gostaria de agendar uma avaliação para conversarmos melhor?`;
-        responseType = ragMatch.responseType;
-        mediaUrl = ragMatch.mediaUrl;
-        audioDuration = ragMatch.audioDuration;
-      } else if (clientName && !text.toLowerCase().includes('marcar')) {
-        responseText = `Que bom ver você de novo, ${clientName}! ✨ Em que posso te ajudar hoje?`;
-      } else if (name && text.length < 50 && !text.toLowerCase().includes('marcar')) {
-        responseText = `Prazer em te conhecer, ${name}! ✨ Você já tem algum tratamento em mente ou gostaria de uma avaliação geral?`;
-      } else {
-        const dayMatch = text.match(/dia\s+(\d+)/i);
-        if (dayMatch) {
-          const day = parseInt(dayMatch[1]);
-          const targetDate = new Date(); targetDate.setDate(day);
-          const freeSlots = checkAvailabilityForDay(targetDate);
-          if (freeSlots.length > 0) {
-            responseText = `Para o dia ${day}, tenho estes horários livres: ${freeSlots.join(', ')}. Algum fica bom?`;
-          } else {
-            responseText = `Puxa, o dia ${day} está lotado. Qual outro dia você prefere?`;
-          }
-        } else if (text.toLowerCase().match(/marcar|agendar|horário/)) {
-          const targetDate = new Date(); targetDate.setHours(17, 0, 0, 0);
-          const busy = events.some((ev: CalendarEvent) => targetDate < new Date(ev.end) && new Date(targetDate.getTime() + 3600000) > new Date(ev.start));
-          responseText = busy
-            ? 'Infelizmente às 17h de hoje a agenda está cheia. Qual dia você prefere?'
-            : 'Posso marcar sua avaliação para hoje às 17:00. Fica bom?';
-        } else if (text.toLowerCase().match(/tá bom|sim|pode ser|ok|confirmo/)) {
-          responseText = 'Perfeito! Agendamento confirmado. A KAVI Clinic agradece pela confiança! ✨';
-        } else {
-          responseText = 'Como posso te ajudar hoje? Posso informar sobre procedimentos, tirar dúvidas ou marcar um horário para você.';
-        }
-      }
-
-      const botResponse: Message = { id: uuidv4(), text: responseText, sender: 'bot', timestamp: new Date(), type: responseType, mediaUrl, audioDuration, status: 'read' };
-      setIsTyping(false);
-      setMessages(prev => [...prev, botResponse]);
-    }, 1500);
+    
+    // Dispara a IA
+    triggerBotResponse(text, messages);
   };
+
+  const handleSendAudio = async (audioBlob: Blob) => {
+    if (!simStarted) { setShowModal(true); return; }
+
+    const processingMsgId = uuidv4();
+    const processingMsg: Message = { id: processingMsgId, text: '🎤 Processando áudio (Whisper)...', sender: 'user', timestamp: new Date(), type: 'text', status: 'sent' };
+    setMessages(prev => [...prev, processingMsg]);
+
+    try {
+      const file = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
+      const transcription = await openai.audio.transcriptions.create({
+        file: file,
+        model: 'whisper-1',
+        language: 'pt'
+      });
+      
+      const text = transcription.text;
+      
+      // Atualiza a msg temporária para o texto transcrito
+      setMessages(prev => prev.map(m => m.id === processingMsgId ? { ...m, text: `🎤 [Áudio]: "${text}"` } : m));
+      
+      // Dispara o bot passando também essa mensagem transcrita no histórico?
+      // actually, just triggers bot with transcibed text and current messages
+      triggerBotResponse(text, messages);
+      
+    } catch (err: any) {
+      console.error('Erro na transcrição de áudio:', err);
+      setMessages(prev => prev.map(m => m.id === processingMsgId ? { ...m, text: '🎤 Erro ao transcrever o áudio. Verifique sua chave da OpenAI.' } : m));
+    }
+  };
+
 
   return (
     <div className="chat-container">
@@ -351,6 +395,7 @@ export const Chat: React.FC = () => {
 
       <ChatInput
         onSendMessage={handleSendMessage}
+        onSendAudio={handleSendAudio}
         onInputFocus={handleInputAttempt}
         onMicClick={handleInputAttempt}
         disabled={!simStarted}

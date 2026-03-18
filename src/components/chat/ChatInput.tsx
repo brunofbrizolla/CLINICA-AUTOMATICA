@@ -6,14 +6,18 @@ interface ChatInputProps {
   onInputFocus?: () => void;
   onMicClick?: () => void;
   disabled?: boolean;
+  onSendAudio?: (audioBlob: Blob) => void;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onInputFocus, onMicClick, disabled }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onInputFocus, onMicClick, disabled, onSendAudio }) => {
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const timerRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -22,23 +26,56 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onInputFocu
     }
   }, [text]);
 
-  const startRecording = () => {
-    setIsRecording(true);
-    setRecordingTime(0);
-    timerRef.current = setInterval(() => {
-      setRecordingTime(prev => prev + 1);
-    }, 1000);
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        if (audioChunksRef.current.length > 0) {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          if (onSendAudio) {
+            onSendAudio(audioBlob);
+          } else {
+            onSendMessage(`🎤 Áudio capturado (${formatTime(recordingTime)}) - Não configurado para envio.`);
+          }
+        }
+        stream.getTracks().forEach(t => t.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Erro ao acessar o microfone', err);
+      alert('Não foi possível acessar o seu microfone. Verifique as permissões de áudio do seu navegador.');
+    }
   };
 
   const stopRecording = () => {
     clearInterval(timerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
     setIsRecording(false);
-    onSendMessage(`🎤 Áudio enviado (${formatTime(recordingTime)})`);
-    setRecordingTime(0);
   };
 
   const cancelRecording = () => {
     clearInterval(timerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      // Limpa os chunks para não enviar no evento onstop
+      audioChunksRef.current = [];
+      mediaRecorderRef.current.stop();
+    }
     setIsRecording(false);
     setRecordingTime(0);
   };
@@ -76,7 +113,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onInputFocu
           <div className="mic-dot"></div>
           <span className="recording-timer">{formatTime(recordingTime)}</span>
         </div>
-        <div className="recording-instruction">Arraste para cancelar</div>
+        <div className="recording-instruction">Toque na lixeira para cancelar</div>
         <button className="btn-icon send-audio" onClick={stopRecording} style={{ backgroundColor: '#00a884', color: 'white' }}>
           <Send size={24} style={{ marginLeft: '4px' }} />
         </button>
